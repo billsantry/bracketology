@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function BracketPage() {
+// Inner component that uses useSearchParams — must be inside Suspense
+function BracketContent() {
     const { data: session, status } = useSession()
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -163,5 +164,14 @@ export default function BracketPage() {
                 ))}
             </div>
         </div>
+    )
+}
+
+// Outer shell wraps inner component in Suspense (required by Next.js for useSearchParams)
+export default function BracketPage() {
+    return (
+        <Suspense fallback={<div style={{ textAlign: 'center', marginTop: '4rem' }}>Loading...</div>}>
+            <BracketContent />
+        </Suspense>
     )
 }
