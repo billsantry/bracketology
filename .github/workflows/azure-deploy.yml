@@ -31,20 +31,19 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Create deployment package
-        # Only package what's needed to RUN the app — not the full source.
-        # Azure's Kudu rebuild is disabled (SCM_DO_BUILD_DURING_DEPLOYMENT=false)
-        # so we ship the pre-built .next output + runtime files only.
+        # Build once on CI, ship pre-built output to Azure.
+        # Kudu rebuild disabled via SCM_DO_BUILD_DURING_DEPLOYMENT=false.
+        # We copy node_modules from the build step (already has prisma client generated)
+        # to avoid running npm ci again and losing the generated client.
         run: |
           mkdir -p deploy
           cp -r .next deploy/
           cp -r public deploy/
           cp -r prisma deploy/
+          cp -r node_modules deploy/
           cp package.json deploy/
-          cp package-lock.json deploy/
           cp next.config.ts deploy/
           cp prisma.config.ts deploy/
-          # Install production deps only (smaller package)
-          cd deploy && npm ci --omit=dev
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
