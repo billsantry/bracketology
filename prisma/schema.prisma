@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  role         Role      @default(USER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  brackets     Bracket[]
+  poolsCreated Pool[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Team {
+  id           String  @id @default(uuid())
+  name         String  @unique
+  seed         Int
+  region       String
+  gamesAsTeam1 Game[]  @relation("Team1Games")
+  gamesAsTeam2 Game[]  @relation("Team2Games")
+  gamesWon     Game[]  @relation("WinnerGames")
+  picks        Pick[]
+}
+
+model Game {
+  id         String  @id @default(uuid())
+  round      Int     // 0 = First Four, 1 = Round of 64, ..., 6 = Championship
+  region     String
+  team1Id    String?
+  team2Id    String?
+  winnerId   String?
+  nextGameId String?
+  
+  team1      Team?   @relation("Team1Games", fields: [team1Id], references: [id])
+  team2      Team?   @relation("Team2Games", fields: [team2Id], references: [id])
+  winner     Team?   @relation("WinnerGames", fields: [winnerId], references: [id])
+  
+  nextGame   Game?   @relation("GameToGame", fields: [nextGameId], references: [id])
+  prevGames  Game[]  @relation("GameToGame")
+  
+  picks      Pick[]
+}
+
+model Pool {
+  id         String    @id @default(uuid())
+  name       String
+  inviteCode String    @unique @default(dbgenerated("substr(md5(random()::text), 1, 6)"))
+  creatorId  String
+  createdAt  DateTime  @default(now())
+  
+  creator    User      @relation(fields: [creatorId], references: [id])
+  brackets   Bracket[]
+}
+
+model Bracket {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  poolId    String
+  score     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id])
+  pool      Pool     @relation(fields: [poolId], references: [id])
+  picks     Pick[]
+  
+  @@unique([userId, poolId])
+}
+
+model Pick {
+  id           String  @id @default(uuid())
+  bracketId    String
+  gameId       String
+  pickedTeamId String
+  
+  bracket      Bracket @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  game         Game    @relation(fields: [gameId], references: [id])
+  pickedTeam   Team    @relation(fields: [pickedTeamId], references: [id])
+  
+  @@unique([bracketId, gameId])
+}
