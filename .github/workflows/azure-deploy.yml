@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-  workflow_dispatch: # allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -26,14 +26,29 @@ jobs:
       - name: Build Next.js app
         run: npm run build
         env:
-          # Provide dummy values for build-time env checks
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Create deployment package
+        # Only package what's needed to RUN the app — not the full source.
+        # Azure's Kudu rebuild is disabled (SCM_DO_BUILD_DURING_DEPLOYMENT=false)
+        # so we ship the pre-built .next output + runtime files only.
+        run: |
+          mkdir -p deploy
+          cp -r .next deploy/
+          cp -r public deploy/
+          cp -r prisma deploy/
+          cp package.json deploy/
+          cp package-lock.json deploy/
+          cp next.config.ts deploy/
+          cp prisma.config.ts deploy/
+          # Install production deps only (smaller package)
+          cd deploy && npm ci --omit=dev
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: app-bracketology-bs
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .
+          package: ./deploy
