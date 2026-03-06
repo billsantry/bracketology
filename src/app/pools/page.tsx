@@ -12,7 +12,7 @@ export default function PoolsPage() {
     useEffect(() => {
         fetch('/api/pools')
             .then(res => res.json())
-            .then(data => setPools(data))
+            .then(data => setPools(data.pools || []))
     }, [])
 
     const handleCreatePool = async (e: React.FormEvent) => {

@@ -16,7 +16,7 @@ export async function GET() {
             },
             orderBy: { createdAt: 'desc' }
         })
-        return NextResponse.json(pools)
+        return NextResponse.json({ pools })
     } catch (error) {
         return NextResponse.json({ error: 'Failed to fetch pools' }, { status: 500 })
     }
